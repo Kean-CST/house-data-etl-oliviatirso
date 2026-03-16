@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.py[cod]
+.DS_Store
+output/
+src/etl_pipeline_solution.py

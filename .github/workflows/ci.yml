@@ -1,0 +1,69 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  # ── Stage 1: Lint ────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff==0.9.10
+      - name: Run ruff
+        run: ruff check src/etl_pipeline.py
+
+  # ── Stage 2: CSV output check ────────────────────────────────────────────────
+  csv-check:
+    name: CSV Output Check
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cps5721_etl
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_DATABASE: cps5721_etl
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      DATASET_DIR: dataset
+      DATASET_FILE: historical_purchases.csv
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run ETL pipeline
+        run: python src/etl_pipeline.py
+
+      - name: Compare CSV output against reference
+        run: python tests/compare_csvs.py
