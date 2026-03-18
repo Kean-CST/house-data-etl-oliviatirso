@@ -5,6 +5,7 @@ Implement the three functions below to complete the ETL pipeline.
 
 Steps:
   1. EXTRACT  – load the CSV into a PySpark DataFrame
+
   2. TRANSFORM – split the data by neighborhood and save each as a separate CSV
   3. LOAD      – insert each neighborhood DataFrame into its own PostgreSQL table
 """
@@ -26,7 +27,7 @@ NEIGHBORHOODS = [
     "Oakwood", "Old Town", "Riverside", "Suburban Park", "University District",
 ]
 
-OUTPUT_DIR   = ROOT / "output" / "by_neighborhood"
+OUTPUT_DIR = ROOT / "output" / "by_neighborhood"
 OUTPUT_FILES = {hood: OUTPUT_DIR / f"{hood.replace(' ', '_').lower()}.csv" for hood in NEIGHBORHOODS}
 
 PG_TABLES = {hood: f"public.{hood.replace(' ', '_').lower()}" for hood in NEIGHBORHOODS}
@@ -43,17 +44,45 @@ PG_COLUMN_SCHEMA = (
 
 def extract(spark: SparkSession, csv_path: str) -> DataFrame:
     """Load the CSV dataset into a PySpark DataFrame with correct data types."""
-    raise NotImplementedError
+    df = spark.read.csv(csv_path, header=True, inferSchema=True)
+    return df
+    # raise NotImplementedError
 
 
 def transform(df: DataFrame) -> dict[str, DataFrame]:
     """Split the data by neighborhood and save each as a separate CSV file."""
-    raise NotImplementedError
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    partitions = {}
+    for hood in NEIGHBORHOODS:
+        neighborhood_df = df.filter(F.col("neighborhood") == hood)
+        out_path = OUTPUT_FILES[hood]
+
+        # Write to a temp dir, then rename the single part file to the expected filename
+        tmp_path = str(out_path) + "_tmp"
+        neighborhood_df.coalesce(1).write.csv(tmp_path, header=True, mode="overwrite")
+
+        # Find the part file and rename it
+        import glob
+        part_files = glob.glob(f"{tmp_path}/part-*.csv")
+        if part_files:
+            import shutil
+            shutil.move(part_files[0], str(out_path))
+            shutil.rmtree(tmp_path)
+
+        partitions[hood] = neighborhood_df
+
+    return partitions
+    # raise NotImplementedError
 
 
 def load(partitions: dict[str, DataFrame], jdbc_url: str, pg_props: dict) -> None:
     """Insert each neighborhood dataset into its own PostgreSQL table."""
-    raise NotImplementedError
+    for hood, df in partitions.items():
+        table = PG_TABLES[hood]
+        df.write.jdbc(url=jdbc_url, table=table, mode="overwrite", properties=pg_props)
+        print(f"✅ Loaded: {table}")
+    # raise NotImplementedError
 
 
 # ── Main (do not modify) ───────────────────────────────────────────────────────
@@ -78,7 +107,7 @@ def main() -> None:
     )
     spark.sparkContext.setLogLevel("WARN")
 
-    df         = extract(spark, csv_path)
+    df = extract(spark, csv_path)
     partitions = transform(df)
     load(partitions, jdbc_url, pg_props)
 
