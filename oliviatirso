@@ -1,0 +1,30 @@
+                 List of relations
+ Schema |        Name         | Type  |    Owner    
+--------+---------------------+-------+-------------
+ public | downtown            | table | oliviatirso
+ public | green_valley        | table | oliviatirso
+ public | hillcrest           | table | oliviatirso
+ public | lakeside            | table | oliviatirso
+ public | maple_heights       | table | oliviatirso
+ public | oakwood             | table | oliviatirso
+ public | old_town            | table | oliviatirso
+ public | riverside           | table | oliviatirso
+ public | suburban_park       | table | oliviatirso
+ public | university_district | table | oliviatirso
+(10 rows)
+
+                 List of relations
+ Schema |        Name         | Type  |    Owner    
+--------+---------------------+-------+-------------
+ public | downtown            | table | oliviatirso
+ public | green_valley        | table | oliviatirso
+ public | hillcrest           | table | oliviatirso
+ public | lakeside            | table | oliviatirso
+ public | maple_heights       | table | oliviatirso
+ public | oakwood             | table | oliviatirso
+ public | old_town            | table | oliviatirso
+ public | riverside           | table | oliviatirso
+ public | suburban_park       | table | oliviatirso
+ public | university_district | table | oliviatirso
+(10 rows)
+
