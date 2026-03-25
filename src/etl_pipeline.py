@@ -73,9 +73,7 @@ def extract(spark: SparkSession, csv_path: str) -> DataFrame:
         F.col("location_score").cast("int").alias("location_score"),
         F.col("school_rating").cast("int").alias("school_rating"),
         F.col("crime_rate").cast("int").alias("crime_rate"),
-        F.col("distance_downtown_miles")
-        .cast("double")
-        .alias("distance_downtown_miles"),
+        F.col("distance_downtown_miles").cast("int").alias("distance_downtown_miles"),
         F.to_date("sale_date", "M/d/yy").alias("sale_date"),
         F.col("days_on_market").cast("int").alias("days_on_market"),
         F.col("buyer_id"),
@@ -98,7 +96,13 @@ def transform(df: DataFrame) -> dict[str, DataFrame]:
     for hood in NEIGHBORHOODS:
         neighborhood_df = df.filter(F.col("neighborhood") == hood).orderBy("house_id")
         out_path = OUTPUT_FILES[hood]
-        rows = [row.asDict() for row in neighborhood_df.collect()]
+        rows = []
+        for row in neighborhood_df.collect():
+            row_data = row.asDict()
+            distance = row_data["distance_downtown_miles"]
+            if isinstance(distance, float) and distance.is_integer():
+                row_data["distance_downtown_miles"] = int(distance)
+            rows.append(row_data)
 
         with out_path.open("w", newline="", encoding="utf-8") as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=neighborhood_df.columns)
